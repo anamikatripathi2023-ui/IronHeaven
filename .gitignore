@@ -1,0 +1,10 @@
+node_modules/
+.DS_Store
+*.pyc
+__pycache__/
+.ipynb_checkpoints/
+*.pkl
+*.joblib
+*.h5
+*.keras
+.env

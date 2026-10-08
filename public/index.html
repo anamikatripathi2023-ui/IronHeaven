@@ -1,0 +1,977 @@
+<title>Ironhaven Safety Intelligence</title>
+<style>
+/* ── Layout: dense industrial dashboard, sidebar + main grid ── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --surface-0: #0c0e11;
+  --surface-1: #141720;
+  --surface-2: #1a1e2a;
+  --surface-3: #222738;
+  --border: rgba(255,255,255,0.06);
+  --border-active: rgba(255,255,255,0.12);
+  --text-primary: #eaecf0;
+  --text-secondary: #94969c;
+  --text-muted: #61636b;
+  --status-normal: #17b26a;
+  --status-normal-bg: rgba(23,178,106,0.1);
+  --status-warning: #f79009;
+  --status-warning-bg: rgba(247,144,9,0.1);
+  --status-danger: #f04438;
+  --status-danger-bg: rgba(240,68,56,0.1);
+  --status-critical: #d92d20;
+  --accent: #2e90fa;
+  --accent-bg: rgba(46,144,250,0.1);
+  --methane: #f79009;
+  --co: #f04438;
+  --smoke: #a78bfa;
+  --temp: #fb6514;
+  --humidity: #36bffa;
+  --vibration: #ee46bc;
+  --aqi: #67e8f9;
+  --co2: #84cc16;
+  --light-int: #fbbf24;
+  color-scheme: dark;
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+/* Light mode tokens */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --surface-0: #f4f5f7;
+    --surface-1: #ffffff;
+    --surface-2: #f9fafb;
+    --surface-3: #eef0f4;
+    --border: rgba(0,0,0,0.08);
+    --border-active: rgba(0,0,0,0.15);
+    --text-primary: #101828;
+    --text-secondary: #475467;
+    --text-muted: #98a2b3;
+    --status-normal: #039855;
+    --status-normal-bg: rgba(3,152,85,0.08);
+    --status-warning: #dc6803;
+    --status-warning-bg: rgba(220,104,3,0.08);
+    --status-danger: #d92d20;
+    --status-danger-bg: rgba(217,45,32,0.08);
+    --status-critical: #b42318;
+    --accent: #1570ef;
+    --accent-bg: rgba(21,112,239,0.08);
+    --methane: #dc6803;
+    --co: #d92d20;
+    --smoke: #7a5af8;
+    --temp: #ec4a0a;
+    --humidity: #0ba5ec;
+    --vibration: #dd2590;
+    --aqi: #06aed4;
+    --co2: #66a80f;
+    --light-int: #ca8a04;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --surface-0: #f4f5f7;
+  --surface-1: #ffffff;
+  --surface-2: #f9fafb;
+  --surface-3: #eef0f4;
+  --border: rgba(0,0,0,0.08);
+  --border-active: rgba(0,0,0,0.15);
+  --text-primary: #101828;
+  --text-secondary: #475467;
+  --text-muted: #98a2b3;
+  --status-normal: #039855;
+  --status-normal-bg: rgba(3,152,85,0.08);
+  --status-warning: #dc6803;
+  --status-warning-bg: rgba(220,104,3,0.08);
+  --status-danger: #d92d20;
+  --status-danger-bg: rgba(217,45,32,0.08);
+  --status-critical: #b42318;
+  --accent: #1570ef;
+  --accent-bg: rgba(21,112,239,0.08);
+  --methane: #dc6803;
+  --co: #d92d20;
+  --smoke: #7a5af8;
+  --temp: #ec4a0a;
+  --humidity: #0ba5ec;
+  --vibration: #dd2590;
+  --aqi: #06aed4;
+  --co2: #66a80f;
+  --light-int: #ca8a04;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; margin: 0; }
+body {
+  background: var(--surface-0);
+  color: var(--text-primary);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  line-height: 1.5;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* ── Top bar ── */
+.topbar {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+}
+.topbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.topbar-logo svg { flex-shrink: 0; }
+.topbar-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.live-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--status-normal);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(23,178,106,0.4); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(23,178,106,0); }
+}
+.topbar-nav {
+  display: flex;
+  gap: 2px;
+  margin-left: 24px;
+}
+.topbar-nav button {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.topbar-nav button:hover { color: var(--text-secondary); background: var(--surface-2); }
+.topbar-nav button.active { color: var(--text-primary); background: var(--surface-3); }
+
+/* ── Main layout ── */
+.dashboard {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  padding: 16px 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  gap: 8px;
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.card-body { padding: 0 16px 16px; }
+
+/* ── KPI Row ── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.kpi {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.kpi-delta {
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.kpi-delta.up { color: var(--status-danger); }
+.kpi-delta.down { color: var(--status-normal); }
+.kpi-spark {
+  height: 28px;
+  margin-top: 4px;
+}
+
+/* ── Status badge ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge-normal { background: var(--status-normal-bg); color: var(--status-normal); }
+.badge-warning { background: var(--status-warning-bg); color: var(--status-warning); }
+.badge-danger { background: var(--status-danger-bg); color: var(--status-danger); }
+
+.badge-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.badge-normal .badge-dot { background: var(--status-normal); }
+.badge-warning .badge-dot { background: var(--status-warning); }
+.badge-danger .badge-dot { background: var(--status-danger); }
+
+/* ── Main grid areas ── */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+}
+
+/* ── Tunnel Schematic ── */
+.tunnel-svg-wrap {
+  padding: 16px;
+  position: relative;
+}
+.tunnel-svg-wrap svg { width: 100%; height: auto; }
+
+/* ── Sensor Charts ── */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+.chart-mini {
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 12px 14px;
+  min-width: 0;
+}
+.chart-mini-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.chart-mini-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.chart-mini-label .swatch {
+  width: 8px; height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.chart-mini-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.chart-mini-unit {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.chart-area {
+  height: 60px;
+  position: relative;
+}
+.chart-area svg { width: 100%; height: 100%; }
+
+/* ── Alert Feed ── */
+.alert-feed { max-height: 480px; overflow-y: auto; }
+.alert-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+.alert-item:hover { background: var(--surface-2); }
+.alert-item:last-child { border-bottom: none; }
+.alert-icon {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 13px;
+}
+.alert-icon.danger { background: var(--status-danger-bg); color: var(--status-danger); }
+.alert-icon.warning { background: var(--status-warning-bg); color: var(--status-warning); }
+.alert-icon.normal { background: var(--status-normal-bg); color: var(--status-normal); }
+.alert-body { min-width: 0; flex: 1; }
+.alert-title { font-size: 13px; font-weight: 500; }
+.alert-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+/* ── AI Prediction Panel ── */
+.prediction-panel {
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 14px;
+}
+.prediction-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.risk-meter {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  margin-bottom: 12px;
+  overflow: hidden;
+  position: relative;
+}
+.risk-meter-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1s ease;
+}
+.risk-factors {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.risk-factor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.risk-factor-label { color: var(--text-secondary); }
+.risk-factor-bar {
+  width: 80px; height: 4px;
+  background: var(--surface-3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.risk-factor-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.8s ease;
+}
+
+/* ── Responsive ── */
+@media (max-width: 860px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .topbar-nav { display: none; }
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 500px) {
+  .dashboard { padding: 12px 16px; }
+  .kpi-value { font-size: 22px; }
+  .charts-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Tooltip ── */
+.tooltip {
+  position: fixed;
+  pointer-events: none;
+  background: var(--surface-1);
+  border: 1px solid var(--border-active);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  z-index: 200;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  display: none;
+  max-width: 220px;
+}
+.tooltip-title { font-weight: 600; margin-bottom: 4px; }
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--text-secondary);
+}
+.tooltip-row span:last-child {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Decision rules table ── */
+.rules-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.rules-table th {
+  text-align: left;
+  padding: 6px 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.rules-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.rules-table tr:last-child td { border-bottom: none; }
+</style>
+
+<!-- Top bar -->
+<header class="topbar">
+  <div class="topbar-logo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" fill="none" stroke="var(--status-danger)" stroke-width="1.5"/>
+      <path d="M12 8v5m0 3h.01" stroke="var(--status-danger)" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    Ironhaven
+    <span style="color:var(--text-muted);font-weight:400;font-size:12px;">Safety Intelligence</span>
+  </div>
+  <nav class="topbar-nav">
+    <button class="active">Overview</button>
+    <button>Zones</button>
+    <button>Incidents</button>
+    <button>AI Agent</button>
+    <button>Settings</button>
+  </nav>
+  <div class="topbar-status">
+    <div class="live-dot"></div>
+    <span>LIVE</span>
+    <span class="mono" id="clock" style="margin-left:8px;">--:--:--</span>
+  </div>
+</header>
+
+<div class="dashboard">
+  <!-- KPI Row -->
+  <div class="kpi-row" id="kpi-row"></div>
+
+  <!-- Main Grid -->
+  <div class="main-grid">
+    <div style="min-width:0;">
+      <!-- Tunnel Schematic -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header">
+          <span class="card-title">Tunnel Schematic — Zone Status</span>
+          <span class="badge badge-warning"><span class="badge-dot"></span>2 zones elevated</span>
+        </div>
+        <div class="tunnel-svg-wrap" id="tunnel-schematic"></div>
+      </div>
+
+      <!-- Sensor Charts -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Sensor Readings — Last 60 minutes</span>
+        </div>
+        <div class="card-body">
+          <div class="charts-grid" id="charts-grid"></div>
+        </div>
+      </div>
+
+      <!-- AI Decision Rules -->
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header">
+          <span class="card-title">AI Agent — Calamity Thresholds</span>
+          <span class="badge badge-danger"><span class="badge-dot"></span>XGBoost Active</span>
+        </div>
+        <div class="card-body">
+          <table class="rules-table">
+            <thead>
+              <tr>
+                <th>Risk Type</th>
+                <th>Sensor</th>
+                <th>Threshold</th>
+                <th>Current</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="rules-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right sidebar -->
+    <div style="min-width:0;">
+      <!-- AI Risk Prediction -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header">
+          <span class="card-title">AI Prediction Engine</span>
+        </div>
+        <div class="card-body">
+          <div class="prediction-panel">
+            <div class="prediction-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M20 12a8 8 0 0 0-8-8v8h8z"/>
+              </svg>
+              Overall Risk Score
+            </div>
+            <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px;">
+              <span id="risk-score" class="kpi-value" style="font-size:36px;">--</span>
+              <span style="font-size:13px;color:var(--text-muted);">/ 100</span>
+              <span id="risk-badge" class="badge" style="margin-left:auto;"></span>
+            </div>
+            <div class="risk-meter">
+              <div class="risk-meter-fill" id="risk-meter-fill"></div>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;">
+              Model: XGBoost (Macro F1: 0.87) · Updated every 5 min
+            </div>
+            <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;">
+              SHAP Feature Contributions
+            </div>
+            <div class="risk-factors" id="risk-factors"></div>
+          </div>
+
+          <!-- Explosion risk -->
+          <div class="prediction-panel" style="margin-top:12px;">
+            <div class="prediction-header" style="color:var(--status-danger);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+              Explosion Risk Index
+            </div>
+            <div style="display:flex;align-items:baseline;gap:6px;">
+              <span id="explosion-score" class="kpi-value" style="font-size:28px;">--</span>
+              <span style="font-size:12px;color:var(--text-muted);">/ 100</span>
+            </div>
+            <div class="risk-meter" style="margin-top:8px;">
+              <div class="risk-meter-fill" id="explosion-meter-fill"></div>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">
+              Weighted: Temp×0.3 + Methane×0.4 + Vibration×0.3
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alert Feed -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Alert Feed</span>
+          <span id="alert-count" style="font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;"></span>
+        </div>
+        <div class="alert-feed" id="alert-feed"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ── Simulated sensor data based on real dataset patterns ──
+const SENSORS = [
+  { key: 'Temperature',     unit: '°C',   color: 'var(--temp)',      min: 22, max: 48, mean: 30.04, std: 5.02, dangerThresh: 38 },
+  { key: 'CO_Level',        unit: 'ppm',  color: 'var(--co)',        min: 0, max: 92, mean: 19.96, std: 14.66, dangerThresh: 35 },
+  { key: 'Methane',         unit: '%LEL', color: 'var(--methane)',   min: 0, max: 13, mean: 2.91, std: 2.13, dangerThresh: 5 },
+  { key: 'Smoke_Level',     unit: 'μg/m³',color: 'var(--smoke)',     min: 0, max: 178, mean: 36.05, std: 27.19, dangerThresh: 70 },
+  { key: 'Humidity',        unit: '%RH',  color: 'var(--humidity)',  min: 27, max: 96, mean: 64.89, std: 9.89, dangerThresh: 85 },
+  { key: 'AQI',             unit: '',     color: 'var(--aqi)',       min: 0, max: 473, mean: 102.84, std: 74.45, dangerThresh: 200 },
+  { key: 'Vibration',       unit: 'g',    color: 'var(--vibration)', min: 0, max: 0.15, mean: 0.05, std: 0.03, dangerThresh: 0.1 },
+  { key: 'CO2_Level',       unit: 'ppm',  color: 'var(--co2)',       min: 0, max: 1844, mean: 509.59, std: 279.89, dangerThresh: 1000 },
+  { key: 'Light_Intensity', unit: 'lux',  color: 'var(--light-int)', min: 9, max: 520, mean: 251.44, std: 79.2, dangerThresh: 100 },
+];
+
+const HISTORY_LEN = 60; // 60 data points = 5 hours at 5min intervals
+let sensorHistory = {};
+SENSORS.forEach(s => { sensorHistory[s.key] = []; });
+
+function gaussRandom(mean, std) {
+  const u1 = Math.random(), u2 = Math.random();
+  return mean + std * Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function generateReading() {
+  const r = {};
+  SENSORS.forEach(s => {
+    const prev = sensorHistory[s.key];
+    const last = prev.length > 0 ? prev[prev.length - 1] : s.mean;
+    // AR(1) process with mean reversion
+    const v = last * 0.7 + s.mean * 0.3 + gaussRandom(0, s.std * 0.3);
+    r[s.key] = clamp(v, s.min, s.max);
+  });
+  return r;
+}
+
+function getStatus(r) {
+  let dangerCount = 0;
+  SENSORS.forEach(s => {
+    if (s.key === 'Light_Intensity') {
+      if (r[s.key] < s.dangerThresh) dangerCount++;
+    } else {
+      if (r[s.key] > s.dangerThresh) dangerCount++;
+    }
+  });
+  if (dangerCount >= 3) return 'Danger';
+  if (dangerCount >= 1) return 'Warning';
+  return 'Normal';
+}
+
+// Initialize history
+for (let i = 0; i < HISTORY_LEN; i++) {
+  const r = generateReading();
+  SENSORS.forEach(s => { sensorHistory[s.key].push(r[s.key]); });
+}
+
+// ── KPI Cards ──
+function renderKPIs(reading) {
+  const status = getStatus(reading);
+  const co = reading.CO_Level;
+  const methane = reading.Methane;
+  const explosionRisk = (
+    ((reading.Temperature - 22) / 26) * 0.3 +
+    (methane / 13) * 0.4 +
+    (reading.Vibration / 0.15) * 0.3
+  ) * 100;
+
+  const kpis = [
+    { label: 'Tunnel Status', value: status, badge: true },
+    { label: 'CO Level', value: co.toFixed(1), unit: 'ppm', delta: co > 35 ? '+' + (co - 35).toFixed(1) : null, up: co > 35 },
+    { label: 'Methane', value: methane.toFixed(2), unit: '%LEL', delta: methane > 5 ? '+' + (methane - 5).toFixed(1) : null, up: methane > 5 },
+    { label: 'Active Sensors', value: '48', unit: '/ 52', delta: '4 offline', up: true },
+    { label: 'Explosion Risk', value: Math.round(clamp(explosionRisk, 0, 100)).toString(), unit: '/ 100' },
+    { label: 'Workers In Zone', value: '23', delta: '3 near danger', up: true },
+  ];
+
+  const container = document.getElementById('kpi-row');
+  container.innerHTML = kpis.map(k => {
+    if (k.badge) {
+      const cls = k.value === 'Danger' ? 'danger' : k.value === 'Warning' ? 'warning' : 'normal';
+      return `<div class="kpi">
+        <div class="kpi-label">${k.label}</div>
+        <div class="badge badge-${cls}" style="font-size:16px;padding:6px 14px;">
+          <span class="badge-dot"></span>${k.value}
+        </div>
+      </div>`;
+    }
+    return `<div class="kpi">
+      <div class="kpi-label">${k.label}</div>
+      <div style="display:flex;align-items:baseline;gap:4px;">
+        <div class="kpi-value">${k.value}</div>
+        ${k.unit ? `<span class="kpi-delta" style="color:var(--text-muted)">${k.unit}</span>` : ''}
+      </div>
+      ${k.delta ? `<div class="kpi-delta ${k.up ? 'up' : 'down'}">${k.up ? '▲' : '▼'} ${k.delta}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── Mini Charts ──
+function makeSvgPath(data, w, h) {
+  if (data.length < 2) return '';
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = h - ((v - min) / range) * (h - 4) - 2;
+    return `${x},${y}`;
+  });
+  return pts.join(' ');
+}
+
+function renderCharts() {
+  const container = document.getElementById('charts-grid');
+  container.innerHTML = SENSORS.map(s => {
+    const data = sensorHistory[s.key];
+    const current = data[data.length - 1];
+    const w = 260, h = 50;
+    const linePts = makeSvgPath(data, w, h);
+    // Area path
+    const min = Math.min(...data), max = Math.max(...data);
+    const range = max - min || 1;
+    const areaD = 'M' + data.map((v, i) => {
+      const x = (i / (data.length - 1)) * w;
+      const y = h - ((v - min) / range) * (h - 4) - 2;
+      return `${x},${y}`;
+    }).join(' L') + ` L${w},${h} L0,${h} Z`;
+
+    const isAlert = s.key === 'Light_Intensity' ? current < s.dangerThresh : current > s.dangerThresh;
+    const statusColor = isAlert ? 'var(--status-danger)' : s.color;
+
+    return `<div class="chart-mini" data-sensor="${s.key}">
+      <div class="chart-mini-header">
+        <div class="chart-mini-label">
+          <span class="swatch" style="background:${s.color}"></span>
+          ${s.key.replace(/_/g, ' ')}
+        </div>
+        <div>
+          <span class="chart-mini-value" style="color:${statusColor}">${
+            s.key === 'Vibration' ? current.toFixed(3) : current.toFixed(1)
+          }</span>
+          <span class="chart-mini-unit">${s.unit}</span>
+        </div>
+      </div>
+      <div class="chart-area">
+        <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="grad-${s.key}" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="${s.color}" stop-opacity="0.15"/>
+              <stop offset="100%" stop-color="${s.color}" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path d="${areaD}" fill="url(#grad-${s.key})"/>
+          <polyline points="${linePts}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle cx="${w}" cy="${h - ((current - min) / range) * (h - 4) - 2}" r="3" fill="${s.color}" stroke="var(--surface-2)" stroke-width="2"/>
+        </svg>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Tunnel Schematic ──
+function renderTunnelSchematic(reading) {
+  const status = getStatus(reading);
+  const zones = [
+    { name: 'Entry Portal', x: 30, status: 'Normal' },
+    { name: 'Zone A — Bore 1', x: 170, status: reading.CO_Level > 30 ? 'Danger' : 'Warning' },
+    { name: 'Zone B — Junction', x: 340, status: reading.Methane > 4 ? 'Danger' : 'Normal' },
+    { name: 'Zone C — Deep Bore', x: 510, status: status },
+    { name: 'Zone D — Face', x: 650, status: reading.Temperature > 36 ? 'Warning' : 'Normal' },
+  ];
+
+  const colors = { Normal: 'var(--status-normal)', Warning: 'var(--status-warning)', Danger: 'var(--status-danger)' };
+  const bgColors = { Normal: 'var(--status-normal-bg)', Warning: 'var(--status-warning-bg)', Danger: 'var(--status-danger-bg)' };
+
+  const container = document.getElementById('tunnel-schematic');
+  container.innerHTML = `<svg viewBox="0 0 800 140" style="width:100%;height:auto;">
+    <!-- Tunnel bore -->
+    <rect x="20" y="40" width="760" height="60" rx="30" fill="var(--surface-2)" stroke="var(--border-active)" stroke-width="1"/>
+    <rect x="30" y="50" width="740" height="40" rx="20" fill="var(--surface-3)" opacity="0.5"/>
+    <!-- Zones -->
+    ${zones.map((z, i) => `
+      <rect x="${z.x}" y="45" width="120" height="50" rx="8" fill="${bgColors[z.status]}" stroke="${colors[z.status]}" stroke-width="1.5" opacity="0.9"/>
+      <circle cx="${z.x + 15}" cy="65" r="4" fill="${colors[z.status]}"/>
+      <text x="${z.x + 25}" y="63" fill="var(--text-primary)" font-size="10" font-weight="600" font-family="DM Sans, sans-serif">${z.name.split('—')[0].trim()}</text>
+      <text x="${z.x + 25}" y="78" fill="var(--text-secondary)" font-size="9" font-family="DM Sans, sans-serif">${z.name.split('—')[1] || ''}</text>
+      <text x="${z.x + 95}" y="70" fill="${colors[z.status]}" font-size="9" font-weight="600" font-family="DM Sans, sans-serif" text-anchor="end">${z.status}</text>
+    `).join('')}
+    <!-- Sensor nodes -->
+    ${[80,220,400,560,710].map((x, i) => `
+      <circle cx="${x}" cy="120" r="6" fill="var(--surface-1)" stroke="${i === 2 ? 'var(--status-warning)' : 'var(--accent)'}" stroke-width="1.5"/>
+      <line x1="${x}" y1="95" x2="${x}" y2="114" stroke="var(--border-active)" stroke-width="1" stroke-dasharray="2,2"/>
+      <text x="${x}" y="135" fill="var(--text-muted)" font-size="8" text-anchor="middle" font-family="DM Sans, sans-serif">S${i+1}</text>
+    `).join('')}
+  </svg>`;
+}
+
+// ── AI Prediction ──
+function renderPrediction(reading) {
+  const coNorm = reading.CO_Level / 92;
+  const methNorm = reading.Methane / 13;
+  const smokeNorm = reading.Smoke_Level / 178;
+  const tempNorm = (reading.Temperature - 22) / 26;
+  const vibNorm = reading.Vibration / 0.15;
+  const aqiNorm = reading.AQI / 473;
+
+  // Weighted risk (matches SHAP importances from analysis)
+  const risk = clamp(
+    coNorm * 35 + methNorm * 25 + smokeNorm * 15 + tempNorm * 10 + vibNorm * 10 + aqiNorm * 5,
+    0, 100
+  );
+  const riskInt = Math.round(risk);
+  const riskLabel = risk > 70 ? 'Critical' : risk > 45 ? 'High' : risk > 25 ? 'Moderate' : 'Low';
+  const riskColor = risk > 70 ? 'var(--status-danger)' : risk > 45 ? 'var(--status-warning)' : risk > 25 ? 'var(--methane)' : 'var(--status-normal)';
+  const riskBadge = risk > 70 ? 'badge-danger' : risk > 45 ? 'badge-warning' : 'badge-normal';
+
+  document.getElementById('risk-score').textContent = riskInt;
+  document.getElementById('risk-score').style.color = riskColor;
+  document.getElementById('risk-badge').className = `badge ${riskBadge}`;
+  document.getElementById('risk-badge').innerHTML = `<span class="badge-dot"></span>${riskLabel}`;
+  document.getElementById('risk-meter-fill').style.width = riskInt + '%';
+  document.getElementById('risk-meter-fill').style.background = `linear-gradient(90deg, var(--status-normal), ${riskColor})`;
+
+  // Explosion risk
+  const expRisk = clamp(tempNorm * 30 + methNorm * 40 + vibNorm * 30, 0, 100);
+  const expInt = Math.round(expRisk);
+  const expColor = expRisk > 60 ? 'var(--status-danger)' : expRisk > 35 ? 'var(--status-warning)' : 'var(--status-normal)';
+  document.getElementById('explosion-score').textContent = expInt;
+  document.getElementById('explosion-score').style.color = expColor;
+  document.getElementById('explosion-meter-fill').style.width = expInt + '%';
+  document.getElementById('explosion-meter-fill').style.background = expColor;
+
+  // SHAP factors
+  const factors = [
+    { label: 'CO Level', value: coNorm, color: 'var(--co)' },
+    { label: 'Methane', value: methNorm, color: 'var(--methane)' },
+    { label: 'Smoke', value: smokeNorm, color: 'var(--smoke)' },
+    { label: 'Temperature', value: tempNorm, color: 'var(--temp)' },
+    { label: 'Vibration', value: vibNorm, color: 'var(--vibration)' },
+    { label: 'AQI', value: aqiNorm, color: 'var(--aqi)' },
+  ].sort((a, b) => b.value - a.value);
+
+  document.getElementById('risk-factors').innerHTML = factors.map(f => `
+    <div class="risk-factor">
+      <span class="risk-factor-label">${f.label}</span>
+      <div class="risk-factor-bar">
+        <div class="risk-factor-bar-fill" style="width:${Math.round(f.value * 100)}%;background:${f.color};"></div>
+      </div>
+      <span style="font-variant-numeric:tabular-nums;font-size:11px;font-weight:600;width:36px;text-align:right;">${(f.value * 100).toFixed(0)}%</span>
+    </div>
+  `).join('');
+}
+
+// ── Decision Rules Table ──
+function renderRules(reading) {
+  const rules = [
+    { risk: 'Explosion', sensor: 'CO Level', thresh: '> 35 ppm', current: reading.CO_Level.toFixed(1) + ' ppm' },
+    { risk: 'Explosion', sensor: 'Methane', thresh: '> 5.0 %LEL', current: reading.Methane.toFixed(2) + ' %LEL' },
+    { risk: 'Explosion', sensor: 'Temperature', thresh: '> 38°C', current: reading.Temperature.toFixed(1) + '°C' },
+    { risk: 'Fire', sensor: 'Smoke Level', thresh: '> 70 μg/m³', current: reading.Smoke_Level.toFixed(1) + ' μg/m³' },
+    { risk: 'Structural', sensor: 'Vibration', thresh: '> 0.100 g', current: reading.Vibration.toFixed(3) + ' g' },
+    { risk: 'Air Quality', sensor: 'AQI', thresh: '> 200', current: reading.AQI.toFixed(0) },
+    { risk: 'Air Quality', sensor: 'CO₂', thresh: '> 1000 ppm', current: reading.CO2_Level.toFixed(0) + ' ppm' },
+  ];
+
+  const isAbove = (r) => {
+    const v = parseFloat(r.current);
+    const t = parseFloat(r.thresh.replace(/[^0-9.]/g, ''));
+    return v > t;
+  };
+
+  document.getElementById('rules-body').innerHTML = rules.map(r => {
+    const above = isAbove(r);
+    const statusHtml = above
+      ? `<span class="badge badge-danger" style="font-size:11px;"><span class="badge-dot"></span>BREACH</span>`
+      : `<span class="badge badge-normal" style="font-size:11px;"><span class="badge-dot"></span>OK</span>`;
+    return `<tr>
+      <td style="font-weight:500;">${r.risk}</td>
+      <td>${r.sensor}</td>
+      <td class="mono" style="font-size:11px;">${r.thresh}</td>
+      <td class="mono" style="font-size:11px;color:${above ? 'var(--status-danger)' : 'var(--text-primary)'};">${r.current}</td>
+      <td>${statusHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Alert Feed ──
+let alerts = [];
+function generateAlert(reading) {
+  const types = [];
+  if (reading.CO_Level > 35) types.push({ level: 'danger', msg: `CO Level at ${reading.CO_Level.toFixed(1)} ppm — exceeds 35 ppm threshold`, zone: 'Zone A' });
+  if (reading.Methane > 5) types.push({ level: 'danger', msg: `Methane at ${reading.Methane.toFixed(2)} %LEL — explosion risk elevated`, zone: 'Zone B' });
+  if (reading.Temperature > 38) types.push({ level: 'warning', msg: `Temperature rising: ${reading.Temperature.toFixed(1)}°C — monitor ventilation`, zone: 'Zone C' });
+  if (reading.Smoke_Level > 70) types.push({ level: 'warning', msg: `Smoke detected: ${reading.Smoke_Level.toFixed(0)} μg/m³ — check fire suppression`, zone: 'Zone C' });
+  if (reading.Vibration > 0.1) types.push({ level: 'danger', msg: `Vibration spike: ${reading.Vibration.toFixed(3)} g — structural risk`, zone: 'Zone D' });
+  if (types.length === 0 && Math.random() < 0.3) {
+    types.push({ level: 'normal', msg: 'All sensors within normal operating range', zone: 'All zones' });
+  }
+  return types;
+}
+
+function renderAlerts() {
+  const container = document.getElementById('alert-feed');
+  document.getElementById('alert-count').textContent = `${alerts.length} alerts`;
+  container.innerHTML = alerts.slice(0, 20).map(a => {
+    const icon = a.level === 'danger' ? '⚠' : a.level === 'warning' ? '◆' : '✓';
+    return `<div class="alert-item">
+      <div class="alert-icon ${a.level}">${icon}</div>
+      <div class="alert-body">
+        <div class="alert-title">${a.msg}</div>
+        <div class="alert-meta">${a.zone} · ${a.time}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Clock ──
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+// ── Main update loop ──
+function update() {
+  const reading = generateReading();
+  SENSORS.forEach(s => {
+    sensorHistory[s.key].push(reading[s.key]);
+    if (sensorHistory[s.key].length > HISTORY_LEN) sensorHistory[s.key].shift();
+  });
+
+  const fullReading = {};
+  SENSORS.forEach(s => { fullReading[s.key] = sensorHistory[s.key][sensorHistory[s.key].length - 1]; });
+
+  renderKPIs(fullReading);
+  renderCharts();
+  renderTunnelSchematic(fullReading);
+  renderPrediction(fullReading);
+  renderRules(fullReading);
+
+  const newAlerts = generateAlert(fullReading);
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  newAlerts.forEach(a => { a.time = timeStr; });
+  alerts = [...newAlerts, ...alerts].slice(0, 50);
+  renderAlerts();
+}
+
+// Boot
+updateClock();
+setInterval(updateClock, 1000);
+update();
+setInterval(update, 5000);
+</script>
