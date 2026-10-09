@@ -2,7 +2,7 @@
 
 **Real-Time Underground Tunnel Safety Monitoring Dashboard**
 
-> Inspired by the Teesta Stage-VI tunnel disaster (July 2026, Sikkim) — built for the ET AI Hackathon 2026.
+> Inspired by the Teesta Stage-VI tunnel disaster (July 2026, Sikkim).
 
 ![Status](https://img.shields.io/badge/status-live-brightgreen) ![License](https://img.shields.io/badge/license-MIT-blue) ![Languages](https://img.shields.io/badge/languages-23-orange)
 
@@ -82,7 +82,7 @@ Each sensor uses a **Gaussian distribution model** with configurable danger thre
 - **Media**: MediaRecorder API (voice), FileReader API (photos)
 - **Persistence**: localStorage (thresholds, contacts, language, theme)
 - **Deployment**: Vercel (static hosting, global CDN, auto-SSL)
-- **AI Agent**: Claude Opus 4.6 (Anthropic) — 23 published versions
+- **Versions**: 23 published iterations
 
 ## Deployment
 
@@ -97,17 +97,10 @@ Each sensor uses a **Gaussian distribution model** with configurable danger thre
 
 Just open `public/index.html` in any browser. No server, no build, no install.
 
-## Hackathon Context
-
-**ET AI Hackathon 2026** — This project demonstrates how a single developer + AI agent can build a production-quality safety system from scratch. The entire 3000+ line application was built through human–AI collaboration:
-
-- **Human** (Anamika Tripathi): Vision, requirements, UX testing, feedback
-- **AI Agent** (Claude Opus 4.6): Architecture, code, debugging, optimization, documentation
-
 ## License
 
 MIT — See [LICENSE](LICENSE) for details.
 
 ---
 
-**Created by [Anamika Tripathi](mailto:anamikatripathi2023@gmail.com) with [Claude](https://claude.ai) (Anthropic)**
+**Created by [Anamika Tripathi](mailto:anamikatripathi2023@gmail.com)**
