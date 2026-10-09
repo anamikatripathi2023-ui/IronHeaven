@@ -1,89 +1,113 @@
 # Ironhaven Safety Intelligence
 
-Real-time underground tunnel safety monitoring system with AI-powered calamity prediction.
+**Real-Time Underground Tunnel Safety Monitoring Dashboard**
 
-## Overview
+> Inspired by the Teesta Stage-VI tunnel disaster (July 2026, Sikkim) — built for the ET AI Hackathon 2026.
 
-Ironhaven Safety Intelligence is a monitoring dashboard designed for underground tunnel operations. It collects sensor data across multiple zones, applies machine learning models to predict dangerous conditions (explosions, fires, structural failures), and provides real-time alerts to operators and workers.
+![Status](https://img.shields.io/badge/status-live-brightgreen) ![License](https://img.shields.io/badge/license-MIT-blue) ![Languages](https://img.shields.io/badge/languages-23-orange)
+
+## What It Does
+
+Ironhaven is a **single-file safety monitoring dashboard** for underground tunnel construction. It provides continuous environmental monitoring, bi-directional worker–admin communication, and automated danger alerts — all in one HTML file that runs in any browser with **zero dependencies**.
+
+### Key Features
+
+- **9 Live Sensors** — Temperature, CO, Methane, Smoke, Humidity, AQI, Vibration, CO₂, Light Intensity with real-time sparkline charts
+- **5 Tunnel Zones** — Intake Shaft, Main Bore, Deep Excavation, Tunnel Face, Ventilation Bay
+- **12 Simulated Workers** — With roles, zone tracking, and safety gear checklists
+- **23 Languages** — All 22 Scheduled Languages of India + Tibetan (Bhotia)
+- **Hazard Reporting** — Workers report 9 types of hazards with voice/photo attachments
+- **Two-Way Communication** — Admin receives reports, sends instructions back to workers
+- **Audio Alerts** — Web Audio API sirens (800Hz warning beep, 600Hz+900Hz danger siren)
+- **Emergency Contacts** — 5 defaults + custom contacts, persisted in localStorage
+- **Dark/Light Theme** — System-aware with manual toggle
+
+## Quick Start
+
+```bash
+# Clone the repo
+git clone https://github.com/YOUR_USERNAME/ironhaven-safety-intelligence.git
+
+# Open in browser — no server needed
+open public/index.html
+```
+
+Or visit the live deployment: **[ironhaven-safety-intelligence.vercel.app](https://ironhaven-safety-intelligence.vercel.app)**
 
 ## Architecture
 
 ```
-├── public/              # Dashboard (self-contained HTML)
-│   └── index.html       # Live monitoring dashboard
-├── data/                # Sensor datasets
+ironhaven-safety-intelligence/
+├── public/
+│   └── index.html          # Complete dashboard (3000+ lines, self-contained)
+├── data/
 │   └── tunnel_monitoring_dataset_5000.csv
-├── notebooks/           # ML analysis & model training
+├── notebooks/
 │   └── Ironhaven_Safety_Intelligence_ML.ipynb
-└── docs/                # Documentation
+├── docs/
+│   └── ...
+├── vercel.json              # Vercel deployment config
+└── README.md
 ```
 
-## Dashboard Features
+### How It Works
 
-- **Tunnel Schematic** — SVG zone map with real-time status indicators (Normal/Warning/Danger)
-- **9 Sensor Channels** — Temperature, CO, CO₂, Methane, Smoke, Humidity, AQI, Vibration, Light Intensity with sparkline charts
-- **AI Prediction Engine** — Overall risk score with SHAP feature contribution bars
-- **Explosion Risk Index** — Weighted composite (Temp×0.3 + Methane×0.4 + Vibration×0.3)
-- **Calamity Threshold Table** — Decision rules from the XGBoost model with live breach detection
-- **Alert Feed** — Chronological log of threshold exceedances and zone events
-- **KPI Tiles** — Tunnel status, CO level, methane, active sensors, explosion risk, workers in zone
-- **Dark/Light Theme** — Follows system preference with explicit toggle support
+```
+Sensors (9 params) → Gaussian Simulation → Threshold Detection → Alerts (Visual + Audio)
+                                                                      ↓
+Workers (12 crew) → Hazard Reports (voice/photo) → Admin Inbox → Instructions → Workers
+```
 
-## ML Models
+## Sensor Engine
 
-Three models trained and compared on the 5,000-reading dataset (Google Colab notebook):
+Each sensor uses a **Gaussian distribution model** with configurable danger thresholds:
 
-| Model | Architecture | Key Config |
-|-------|-------------|------------|
-| **XGBoost** | Gradient boosted trees | 300 estimators, depth 8, lr 0.05 |
-| **Random Forest** | Bagged decision trees | 300 estimators, depth 15, balanced weights |
-| **LSTM** | Recurrent neural network | 128→64 units, sequence length 6, BatchNorm + Dropout |
-
-### Feature Engineering (73+ features)
-
-- Rolling 12-window statistics (mean, std, min, max)
-- Rate-of-change per sensor
-- Cross-sensor interactions: CO×Methane, CO×Smoke, Temp×Methane
-- Lag features (1, 3, 6 steps)
-- Composite risk scores:
-  - `explosion_risk_score` = Temp×0.3 + Methane×0.4 + Vibration×0.3
-  - `fire_risk_score` = CO×0.5 + Smoke×0.5
-
-### Key Findings
-
-- **Top danger predictors**: CO Level (r=0.54), Methane (r=0.40), Smoke Level (r=0.23)
-- **Class distribution**: Normal 9.4%, Warning 49.7%, Danger 40.9%
-- **SHAP explainability** identifies which sensor readings drive each danger prediction
-
-## Dataset
-
-5,000 readings at 5-minute intervals from 2026-04-01 to 2026-04-18:
-
-| Sensor | Unit | Range | Mean ± Std |
-|--------|------|-------|------------|
-| Temperature | °C | 22–48 | 30.0 ± 5.0 |
-| CO Level | ppm | 0–92 | 20.0 ± 14.7 |
-| CO₂ Level | ppm | 0–1844 | 509.6 ± 279.9 |
-| Methane | %LEL | 0–13 | 2.9 ± 2.1 |
-| Smoke Level | μg/m³ | 0–178 | 36.1 ± 27.2 |
-| Humidity | %RH | 27–96 | 64.9 ± 9.9 |
-| AQI | — | 0–473 | 102.8 ± 74.5 |
-| Vibration | g | 0–0.15 | 0.05 ± 0.03 |
-| Light Intensity | lux | 9–520 | 251.4 ± 79.2 |
+| Sensor | Unit | Mean ± StdDev | Danger Threshold |
+|--------|------|---------------|------------------|
+| Temperature | °C | 30.04 ± 5.02 | 38°C |
+| Carbon Monoxide | ppm | 19.96 ± 14.66 | 35 ppm |
+| Methane | %LEL | 2.91 ± 2.13 | 5% LEL |
+| Smoke Level | μg/m³ | 36.05 ± 27.19 | 70 μg/m³ |
+| Humidity | %RH | 64.89 ± 9.89 | 85% RH |
+| Air Quality Index | — | 102.84 ± 74.45 | 200 |
+| Vibration | g | 0.05 ± 0.03 | 0.1 g |
+| CO₂ Level | ppm | 509.59 ± 279.89 | 1000 ppm |
+| Light Intensity | lux | 251.44 ± 79.2 | < 100 lux |
 
 ## Tech Stack
 
-- **Dashboard**: Vanilla HTML/CSS/JS (self-contained, no build step)
-- **ML Pipeline**: Python, scikit-learn, XGBoost, TensorFlow/Keras, SHAP
-- **Fonts**: DM Sans + JetBrains Mono (Google Fonts)
-- **Design**: Custom industrial dark theme with DGMS-compliant status colors
+- **Frontend**: HTML5, CSS3 (Custom Properties, Flexbox, Grid), Vanilla ES6+ JavaScript
+- **Charting**: Custom SVG sparkline renderer — zero library dependency
+- **Audio**: Web Audio API (OscillatorNode + GainNode)
+- **Media**: MediaRecorder API (voice), FileReader API (photos)
+- **Persistence**: localStorage (thresholds, contacts, language, theme)
+- **Deployment**: Vercel (static hosting, global CDN, auto-SSL)
+- **AI Agent**: Claude Opus 4.6 (Anthropic) — 23 published versions
 
-## Getting Started
+## Deployment
 
-1. Open `public/index.html` in a browser — no server needed
-2. Upload `notebooks/Ironhaven_Safety_Intelligence_ML.ipynb` to Google Colab for model training
-3. Upload `data/tunnel_monitoring_dataset_5000.csv` when prompted in the notebook
+### Vercel (Recommended)
+
+1. Push to GitHub
+2. Import the repo on [vercel.com](https://vercel.com)
+3. It auto-detects the `vercel.json` config — no build step needed
+4. Your dashboard is live at `your-project.vercel.app`
+
+### Manual
+
+Just open `public/index.html` in any browser. No server, no build, no install.
+
+## Hackathon Context
+
+**ET AI Hackathon 2026** — This project demonstrates how a single developer + AI agent can build a production-quality safety system from scratch. The entire 3000+ line application was built through human–AI collaboration:
+
+- **Human** (Anamika Tripathi): Vision, requirements, UX testing, feedback
+- **AI Agent** (Claude Opus 4.6): Architecture, code, debugging, optimization, documentation
 
 ## License
 
-MIT
+MIT — See [LICENSE](LICENSE) for details.
+
+---
+
+**Created by [Anamika Tripathi](mailto:anamikatripathi2023@gmail.com) with [Claude](https://claude.ai) (Anthropic)**
